@@ -208,6 +208,21 @@ tagsDataToDF <- function(tags){
     return(tags)
 }
 
+adDataToDF <- function(json){
+  df <- data.frame(
+    ad_name = unlistWithNA(json, c('data', 'ad_name')),
+#     from_name = unlistWithNA(json, c('from', 'name')),
+#     message = unlistWithNA(json, 'message'),
+#     created_time = unlistWithNA(json, 'created_time'),
+#     type = unlistWithNA(json, 'type'),
+#     link = unlistWithNA(json, 'link'),
+#     id = unlistWithNA(json, 'id'),
+#     likes_count = unlistWithNA(json, c('likes', 'summary', 'total_count')),
+#     comments_count = unlistWithNA(json, c('comments', 'summary', 'total_count')),
+#     shares_count = unlistWithNA(json, c('shares', 'count')),
+    stringsAsFactors=F)
+  return(df)
+}
 
 unlistWithNA <- function(lst, field){
 	if (length(field)==1){
