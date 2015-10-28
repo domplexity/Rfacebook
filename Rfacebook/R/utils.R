@@ -210,16 +210,21 @@ tagsDataToDF <- function(tags){
 
 adDataToDF <- function(json){
   df <- data.frame(
-    ad_name = unlistWithNA(json, c('data', 'ad_name')),
-#     from_name = unlistWithNA(json, c('from', 'name')),
-#     message = unlistWithNA(json, 'message'),
-#     created_time = unlistWithNA(json, 'created_time'),
-#     type = unlistWithNA(json, 'type'),
-#     link = unlistWithNA(json, 'link'),
-#     id = unlistWithNA(json, 'id'),
-#     likes_count = unlistWithNA(json, c('likes', 'summary', 'total_count')),
-#     comments_count = unlistWithNA(json, c('comments', 'summary', 'total_count')),
-#     shares_count = unlistWithNA(json, c('shares', 'count')),
+    ad_id = unlistWithNA(json, 'ad_id'),
+    ad_name = unlistWithNA(json, 'ad_name'),
+    adset_id = unlistWithNA(json, 'adset_id'),
+    adset_name = unlistWithNA(json, 'adset_name'),
+    impressions = unlistWithNA(json, 'impressions'),
+    cost_per_unique_click = unlistWithNA(json, 'cost_per_unique_click'),
+    ctr = unlistWithNA(json, 'ctr'),
+    frequency = unlistWithNA(json, 'frequency'),
+    reach = unlistWithNA(json, 'reach'),
+    spend = unlistWithNA(json, 'spend'),
+    unique_clicks = unlistWithNA(json, 'unique_clicks'),
+    age = unlistWithNA(json, 'age'),
+    gender = unlistWithNA(json, 'gender'),
+    action.link_click = unlistWithNA(json, c('actions','link_click')), # needs to be built in a dynamic manner
+#     cost_per_action_type = unlistWithNA(json, c('cost_per_action_type'),
     stringsAsFactors=F)
   return(df)
 }
@@ -235,6 +240,11 @@ unlistWithNA <- function(lst, field){
 		vect <- rep(NA, length(lst))
 		vect[notnulls] <- unlist(lapply(lst, function(x) x[[field[1]]][[field[2]]]))
 	}
+  if (field[1]=="actions" & !is.na(field[2])){
+    notnulls <- unlist(lapply(lst, function(x) !is.null(x[[field[1]]])))
+    vect <- rep(0, length(lst))
+    vect[notnulls] <- unlist(lapply(lst, function(x) x[[field[1]]][[which(lapply(x[[field[1]]],function(y) y[["action_type"]] == field[2]) == TRUE)]]$value))
+  }
 	if (field[1]=="shares"){
 		notnulls <- unlist(lapply(lst, function(x) !is.null(x[[field[1]]][[field[2]]])))
 		vect <- rep(0, length(lst))

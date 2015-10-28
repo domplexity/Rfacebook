@@ -1,9 +1,17 @@
-getads <- function(campaign, token){
+getads <- function(campaign, token, fields,breakdowns,limit){
   
-  url <- paste0("https://graph.facebook.com/v2.5/", campaign,
-                "/insights/?level=ad&fields=ad_name,impressions")
+  #todo: ist leer? ist vector?
   
-  print(url)
+  url <- paste0("https://graph.facebook.com/v2.5/",
+                campaign,
+                "/insights/?level=ad&fields=",
+                paste(fields,collapse = ","),
+                "&breakdowns=",
+                paste(breakdowns,collapse = ","),
+                "&limit=",
+                limit)
+  
+  #print(url)
   
   content <- callAPI(url=url, token=token)
   
@@ -20,10 +28,6 @@ getads <- function(campaign, token){
     stop("Post could not be found")
   }
   
-  # putting it together
-#   out <- list()
-#   
-#   return(out)
   return(content)
   
 }
