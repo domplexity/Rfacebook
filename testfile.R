@@ -2,23 +2,18 @@ library(devtools)
 install_github("Rfacebook", "pablobarbera", subdir="Rfacebook")
 install_github("httr", "hadley", subdir = "httr")
 
-https://github.com/hadley/httr
 library(Rfacebook)
 library(ggplot2)
 
 # for app Roauthtest:
-<<<<<<< HEAD
-auth_test <- fbOAuth(app_id = "899832843417285",
-        app_secret = "XX", 
-=======
+
 auth_test <- fbOAuth(app_id = "XXX",
-        app_secret = "XXX", 
->>>>>>> 3faa7bcd5e19cd76412036788f15e33ef56f0e7f
+        app_secret = "XXX",
         extended_permissions = FALSE)
 
 save(auth_test, file = "fb_oauth")
 
-
+load(file = "fb_oauth")
 
 # insights_test <- getInsights(
 #   token = auth_test,
@@ -51,12 +46,15 @@ temp <- getads(campaign = "6031785088708",
                breakdowns = c("age","gender"),
                limit = 100)
 
+#save as local json
 
+save(temp, file = "json_export")
 
 temp.df <- adDataToDF(temp$data)
 
 temp.df.groups <- temp.df
 temp.df.groups$adset_name[temp.df.groups$adset_name == "Gruppe B2"] <- "Gruppe B"
+
 
 ###################################################
 # Alternative mit manuellem Export aus AdManager
@@ -85,29 +83,47 @@ temp.df.groups$adset_name[temp.df.groups$adset_name == "Gruppe B2"] <- "Gruppe B
 
 ###################################################
 
+library(ggplot2)
+library(RColorBrewer)
+
+
+#look at the available palettes:
+display.brewer.all()
+
+diffferent.theme <- theme(axis.title=element_text(size=16,face="bold"),
+                          axis.text=element_text(size=12, face="bold"),
+                          panel.grid.major = element_blank(),
+                          panel.grid.minor = element_blank(),
+                          legend.position="none")
 
 # Reichweite
-aggregate(temp.df.groups$reach,by = list(temp.df.groups$adset_name), FUN = sum)
-
 df.for.reach <- aggregate(temp.df.groups$reach,by = list(temp.df.groups$adset_name), FUN = sum)
 colnames(df.for.reach) <- c("Gruppe","Reichweite")
+
 plot.reach <- ggplot(df.for.reach)
-plot.reach + geom_bar(aes(x = Gruppe, y = Reichweite), stat="identity")
+plot.reach + geom_bar(aes(x = Gruppe, y = Reichweite, fill = Gruppe), stat="identity", width = .7) + 
+  scale_fill_brewer(palette = "Oranges") + diffferent.theme
+ 
 
 
 
 # Clicks
 df.for.click <- aggregate(temp.df.groups$action.link_click, by = list(temp.df.groups$adset_name), FUN = sum, na.rm = TRUE)
 colnames(df.for.click) <- c("Gruppe","Klicks")
+
 plot.click <- ggplot(df.for.click)
-plot.click + geom_bar(aes(x = Gruppe, y = Klicks), stat = "identity")
+  plot.click + geom_bar(aes(x = Gruppe, y = Klicks), stat = "identity", width = .7) + 
+    scale_fill_brewer(palette = "Oranges") + diffferent.theme
 
 # visual ctr
 
 df.mixed <- merge(x = df.for.reach, y = df.for.click, by = "Gruppe")
 
 plot.click.reach <- ggplot(df.mixed)
-plot.click.reach + geom_point(aes(x=Reichweite, y = Klicks))
+plot.click.reach + geom_point(aes(x=Reichweite, y = Klicks), size = 6) +
+  geom_text(aes(x=Reichweite, y = Klicks,label=Gruppe),hjust=-0.2, vjust=0) +
+  scale_fill_brewer(palette = "Oranges") + diffferent.theme
+
 # dotsize
 # label
 # style
@@ -119,5 +135,10 @@ df.mixed <- merge(x = df.mixed, y = aggregate(temp.df.groups$spend, by = list(te
 colnames(df.mixed)[4] <- "Ausgaben"
 df.mixed$CPC <- df.mixed$Ausgaben/df.mixed$Klicks
 
-aggregate(temp.df.groups$action.link_click, by = list(temp.df.groups$age), FUN = sum)
-          
+
+plot.directly <- ggplot(data = temp.df.groups)
+plot.directly + stat_summary(fun.y=sum,geom="bar",(aes(adset_name, reach))) + facet_grid(. ~ gender)
+
+plot.directly + stat_summary(fun.y=sum,geom="point",(aes(x = reach, y = action.link_click))) + facet_grid(gender ~ adset_name)
+
+plot.directly + stat_summary(fun.y=sum,geom="bar",(aes(x = adset_name, y = action.link_click))) + facet_grid(age ~ gender)
