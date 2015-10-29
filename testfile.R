@@ -1,9 +1,14 @@
+library(devtools)
+install_github("Rfacebook", "pablobarbera", subdir="Rfacebook")
+install_github("httr", "hadley", subdir = "httr")
+
+https://github.com/hadley/httr
 library(Rfacebook)
 library(ggplot2)
 
 # for app Roauthtest:
-auth_test <- fbOAuth(app_id = "899832843417285",
-        app_secret = "151b44df592844be5c905b9d7a44c07f", 
+auth_test <- fbOAuth(app_id = "XXX",
+        app_secret = "XXX", 
         extended_permissions = FALSE)
 
 save(auth_test, file = "fb_oauth")
@@ -48,22 +53,66 @@ temp.df <- adDataToDF(temp$data)
 temp.df.groups <- temp.df
 temp.df.groups$adset_name[temp.df.groups$adset_name == "Gruppe B2"] <- "Gruppe B"
 
+###################################################
+# Alternative mit manuellem Export aus AdManager
+
+temp2 <- read.csv(file = "manual_export.csv")
+
+spalten.temp <- colnames(temp2)
+spalten.temp[3] <- "ad_name"
+spalten.temp[4] <- "age"
+spalten.temp[5] <- "gender"
+spalten.temp[8] <- "reach"
+spalten.temp[10] <- "spend"
+spalten.temp[12] <- "impressions"
+spalten.temp[13] <- "ctr"
+spalten.temp[14] <- "cost_per_unique_click"
+spalten.temp[15] <- "action.link_click"
+spalten.temp[16] <- "frequency"
+spalten.temp[18] <- "adset_name"
+spalten.temp[19] <- "adset_id"
+
+colnames(temp2) <- spalten.temp
+
+temp.df <- temp2
+temp.df.groups <- temp2
+temp.df.groups$adset_name[temp.df.groups$adset_name == "Gruppe B2"] <- "Gruppe B"
+
+###################################################
+
+
 # Reichweite
 aggregate(temp.df.groups$reach,by = list(temp.df.groups$adset_name), FUN = sum)
 
-a <- ggplot(temp.df.groups)
+df.for.reach <- aggregate(temp.df.groups$reach,by = list(temp.df.groups$adset_name), FUN = sum)
+colnames(df.for.reach) <- c("Gruppe","Reichweite")
+plot.reach <- ggplot(df.for.reach)
+plot.reach + geom_bar(aes(x = Gruppe, y = Reichweite), stat="identity")
 
-a + geom_dotplot(aes(x = adset_name, y = sum(reach)))
 
 
 # Clicks
-click.agg <- aggregate(temp.df.groups$action.link_click,by = list(temp.df.groups$adset_name), FUN = sum)
-colnames(click.agg) <- c("Gruppe","Klicks")
-clickplot <- ggplot(click.agg)
-clickplot + geom_bar(aes(x = Gruppe, y = Klicks), stat = "identity")
+df.for.click <- aggregate(temp.df.groups$action.link_click, by = list(temp.df.groups$adset_name), FUN = sum, na.rm = TRUE)
+colnames(df.for.click) <- c("Gruppe","Klicks")
+plot.click <- ggplot(df.for.click)
+plot.click + geom_bar(aes(x = Gruppe, y = Klicks), stat = "identity")
 
-clickplot + geom_dotplot(binaxis = "y",method = "histodot", aes(x = Gruppe, y = Klicks))
+# visual ctr
 
+df.mixed <- merge(x = df.for.reach, y = df.for.click, by = "Gruppe")
+
+plot.click.reach <- ggplot(df.mixed)
+plot.click.reach + geom_point(aes(x=Reichweite, y = Klicks))
+# dotsize
+# label
+# style
+
+
+# bring cost into the equation
+
+df.mixed <- merge(x = df.mixed, y = aggregate(temp.df.groups$spend, by = list(temp.df.groups$adset_name), FUN = sum, na.rm = TRUE), by.x = "Gruppe", by.y = "Group.1")
+colnames(df.mixed)[4] <- "Ausgaben"
+df.mixed$CPC <- df.mixed$Ausgaben/df.mixed$Klicks
 
 aggregate(temp.df.groups$action.link_click, by = list(temp.df.groups$age), FUN = sum)
           
