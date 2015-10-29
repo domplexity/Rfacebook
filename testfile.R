@@ -3,7 +3,7 @@ library(ggplot2)
 
 # for app Roauthtest:
 auth_test <- fbOAuth(app_id = "899832843417285",
-        app_secret = "151b44df592844be5c905b9d7a44c07f", 
+        app_secret = "XX", 
         extended_permissions = FALSE)
 
 save(auth_test, file = "fb_oauth")
