@@ -46,6 +46,41 @@ temp <- getads(campaign = "6031785088708",
                breakdowns = c("age","gender"),
                limit = 100)
 
+# temp.time <- getads(campaign = "6031785088708", 
+#                     token = auth_test, 
+#                     fields = c("ad_id",
+#                                "ad_name",
+#                                "adset_id",
+#                                "adset_name",
+#                                "impressions",
+#                                "cost_per_unique_click",
+#                                "ctr",
+#                                "frequency",
+#                                "reach",
+#                                "spend",
+#                                "unique_clicks",
+#                                "actions",
+#                                "cost_per_action_type"),
+#                     breakdowns = c("hourly_stats_aggregated_by_audience_time_zone"),
+#                     limit = 100)
+# 
+# temp.time.df <- adDataToDF(temp.time)
+
+datei <- file.choose()
+temp.time.df <- read.csv(datei)
+
+datei <- file.choose()
+temp.time.group.df <- read.csv(datei)
+
+temp.time.group.df$Gruppe <- temp.time.group.df$Name.der.Werbeanzeigengruppe
+temp.time.group.df$Gruppe[temp.time.group.df$Gruppe == "Gruppe B2"] <- "Gruppe B"
+
+temp.time.group.results <- aggregate(temp.time.group.df$Ergebnisse, by = list(temp.time.group.df$Gruppe, temp.time.group.df$Berichtsende), FUN = sum, na.rm = TRUE)
+temp.time.group.reach <- aggregate(temp.time.group.df$Reichweite, by = list(temp.time.group.df$Gruppe, temp.time.group.df$Berichtsende), FUN = sum, na.rm = TRUE)
+
+temp.time.group.df <- merge(temp.time.group.results,temp.time.group.reach,by = c("Group.1","Group.2"))
+
+colnames(temp.time.group.df) <- c("Gruppe","Datum","Klicks","Reichweite")
 #save as local json
 
 save(temp, file = "json_export")
@@ -94,6 +129,7 @@ diffferent.theme <- theme(axis.title=element_text(size=16,face="bold"),
                           axis.text=element_text(size=12, face="bold"),
                           panel.grid.major = element_blank(),
                           panel.grid.minor = element_blank(),
+                          panel.background = element_rect(fill = "grey"),
                           legend.position="none")
 
 # Reichweite
@@ -112,16 +148,19 @@ df.for.click <- aggregate(temp.df.groups$action.link_click, by = list(temp.df.gr
 colnames(df.for.click) <- c("Gruppe","Klicks")
 
 plot.click <- ggplot(df.for.click)
-  plot.click + geom_bar(aes(x = Gruppe, y = Klicks), stat = "identity", width = .7) + 
+  plot.click + geom_bar(aes(x = Gruppe, y = Klicks, fill = Gruppe), stat = "identity", width = .7) + 
     scale_fill_brewer(palette = "Oranges") + diffferent.theme
 
 # visual ctr
 
 df.mixed <- merge(x = df.for.reach, y = df.for.click, by = "Gruppe")
+df.mixed$CTR <- df.mixed$Klicks/df.mixed$Reichweite
+
+label.vec <- paste0(c("A","B","C","D"),rep(x = " [", times = 4),round(x = df.mixed$CTR,digits = 4)*100,rep(x = "%]", times = 4))
 
 plot.click.reach <- ggplot(df.mixed)
-plot.click.reach + geom_point(aes(x=Reichweite, y = Klicks), size = 6) +
-  geom_text(aes(x=Reichweite, y = Klicks,label=Gruppe),hjust=-0.2, vjust=0) +
+plot.click.reach + geom_point(aes(x=Reichweite, y = CTR, fill = Gruppe), size = 6) +
+  geom_text(aes(x=Reichweite, y = CTR,label= label.vec),hjust=c(1.2,-0.2,-0.2,-0.2), vjust=0) +
   scale_fill_brewer(palette = "Oranges") + diffferent.theme
 
 # dotsize
@@ -135,10 +174,41 @@ df.mixed <- merge(x = df.mixed, y = aggregate(temp.df.groups$spend, by = list(te
 colnames(df.mixed)[4] <- "Ausgaben"
 df.mixed$CPC <- df.mixed$Ausgaben/df.mixed$Klicks
 
+plot.cost <- ggplot(df.mixed)
+plot.cost + 
 
-plot.directly <- ggplot(data = temp.df.groups)
+
+plot.directly <- ggplot(data = subset(x = temp.df.groups,subset = temp.df.groups$gender != "unknown"))
 plot.directly + stat_summary(fun.y=sum,geom="bar",(aes(adset_name, reach))) + facet_grid(. ~ gender)
 
-plot.directly + stat_summary(fun.y=sum,geom="point",(aes(x = reach, y = action.link_click))) + facet_grid(gender ~ adset_name)
+plot.directly + 
+  stat_summary(fun.y=sum,geom="point",(aes(x = reach, y = action.link_click))) + 
+  scale_fill_brewer(palette = "Oranges") + 
+  diffferent.theme +
+  facet_grid(gender ~ adset_name)
 
-plot.directly + stat_summary(fun.y=sum,geom="bar",(aes(x = adset_name, y = action.link_click))) + facet_grid(age ~ gender)
+plot.directly + stat_summary(fun.y=sum,geom="bar",(aes(x = adset_name, y = action.link_click))) + 
+  scale_fill_brewer(palette = "Oranges") + 
+  diffferent.theme +
+  facet_grid(age ~ gender)
+
+plot.directly + 
+  stat_summary(fun.y=sum,geom="bar",(aes(x = gender, y = action.link_click, fill = gender))) + 
+  scale_fill_brewer(palette = "Oranges") + 
+  diffferent.theme +
+  facet_grid(. ~ age)
+
+
+
+plot.time <- ggplot(temp.time.group.df,aes(x = Datum, y = Reichweite))
+plot.time + 
+  geom_point(aes(colour = Gruppe)) + 
+  geom_line(aes(group = Gruppe,colour = Gruppe))
+
+plot.time2 <- ggplot(temp.time.group.df,aes(x = Datum, y = scale(Klicks)))
+plot.time2 + 
+  geom_point(aes(colour = Gruppe)) + 
+  geom_line(aes(group = Gruppe, colour = Gruppe)) +
+  geom_point(aes(colour = Gruppe, y = scale(Reichweite))) + 
+  geom_line(aes(group = Gruppe,colour = Gruppe, y = scale(Reichweite)))
+

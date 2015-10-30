@@ -224,6 +224,7 @@ adDataToDF <- function(json){
     age = unlistWithNA(json, 'age'),
     gender = unlistWithNA(json, 'gender'),
     action.link_click = unlistWithNA(json, c('actions','link_click')), # needs to be built in a dynamic manner
+    # hourly_stats = unlistWithNA(json, c('hourly_stats_aggregated_by_audience_time_zone')),
 #     cost_per_action_type = unlistWithNA(json, c('cost_per_action_type'),
     stringsAsFactors=F)
   return(df)
